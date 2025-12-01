@@ -1,20 +1,32 @@
 import streamlit as st
+from streamlit_webrtc import webrtc_streamer, AudioProcessorBase
 import speech_recognition as sr
+import av
 
-st.set_page_config(page_title="Speech-to-Text App", layout="centered")
-st.title("🎤 Speech-to-Text (Tap to Record)")
+st.title("🎤 Real-Time Speech-to-Text (Online Version)")
 
-recognizer = sr.Recognizer()
+text_box = st.empty()
 
-if st.button("🎙 Start Recording"):
-    with st.spinner("Listening..."):
-        with sr.Microphone() as source:
-            recognizer.adjust_for_ambient_noise(source)
-            audio = recognizer.listen(source)
+class AudioProcessor(AudioProcessorBase):
+    def __init__(self):
+        self.recognizer = sr.Recognizer()
 
-        st.write("⏳ Processing...")
+    def recv_audio(self, frame: av.AudioFrame):
+        audio = frame.to_ndarray()
+        sample_rate = frame.sample_rate
+
         try:
-            text = recognizer.recognize_google(audio)
-            st.success("📝 Text: " + text)
+            audio_data = sr.AudioData(audio.tobytes(), sample_rate, 2)
+            text = self.recognizer.recognize_google(audio_data)
+            text_box.markdown(f"### 📝 {text}")
         except:
-            st.error("❌ Could not understand audio")
+            pass
+
+        return frame
+
+webrtc_streamer(
+    key="speech",
+    mode="recvonly",
+    audio_processor_factory=AudioProcessor,
+    media_stream_constraints={"audio": True, "video": False}
+)
