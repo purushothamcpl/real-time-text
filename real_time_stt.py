@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_webrtc import webrtc_streamer, AudioProcessorBase
 import speech_recognition as sr
 import av
+import numpy as np
 
 st.title("🎤 Real-Time Speech-to-Text (Online Version)")
 
