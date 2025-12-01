@@ -1,33 +1,30 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, AudioProcessorBase
 import speech_recognition as sr
-import av
-import numpy as np
+import tempfile
 
-st.title("🎤 Real-Time Speech-to-Text (Online Version)")
+st.set_page_config(page_title="Speech-to-Text", layout="centered")
+st.title("🎤 Speech-to-Text (Online Version Without PyAudio / WebRTC)")
 
-text_box = st.empty()
+st.write("Tap below to record your voice, then convert to text.")
 
-class AudioProcessor(AudioProcessorBase):
-    def __init__(self):
-        self.recognizer = sr.Recognizer()
+# Upload audio recorded from browser
+audio_file = st.file_uploader("Upload recorded audio (.wav/.mp3)", type=["wav", "mp3"])
 
-    def recv_audio(self, frame: av.AudioFrame):
-        audio = frame.to_ndarray()
-        sample_rate = frame.sample_rate
+if audio_file is not None:
+    st.audio(audio_file)
 
-        try:
-            audio_data = sr.AudioData(audio.tobytes(), sample_rate, 2)
-            text = self.recognizer.recognize_google(audio_data)
-            text_box.markdown(f"### 📝 {text}")
-        except:
-            pass
+    recognizer = sr.Recognizer()
 
-        return frame
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp:
+        temp.write(audio_file.read())
+        temp_path = temp.name
 
-webrtc_streamer(
-    key="speech",
-    mode="recvonly",
-    audio_processor_factory=AudioProcessor,
-    media_stream_constraints={"audio": True, "video": False}
-)
+    try:
+        with sr.AudioFile(temp_path) as source:
+            audio = recognizer.record(source)
+        text = recognizer.recognize_google(audio)
+        st.success("📝 Transcribed Text:")
+        st.write(text)
+    except Exception as e:
+        st.error("Could not transcribe audio.")
+        st.error(str(e))
