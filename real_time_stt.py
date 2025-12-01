@@ -1,3 +1,6 @@
+import os
+os.environ["PYTHONUNBUFFERED"] = "1"
+
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, AudioProcessorBase
 import speech_recognition as sr
